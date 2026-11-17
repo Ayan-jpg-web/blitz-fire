@@ -1,0 +1,229 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL HELPERS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    // --- VALIDATION HELPERS ---
+    function isValidUserProfile(data, userId) {
+      return data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+             data.callsign is string && data.callsign.size() >= 2 && data.callsign.size() <= 24 &&
+             data.diamonds is int && data.diamonds >= 0 && data.diamonds <= 999999999 &&
+             data.gold is int && data.gold >= 0 && data.gold <= 999999999 &&
+             data.royaleTokens is int && data.royaleTokens >= 0 && data.royaleTokens <= 999999999 &&
+             data.diamondRoyaleLuck is int && data.diamondRoyaleLuck >= 0 && data.diamondRoyaleLuck <= 100 &&
+             data.weaponRoyaleLuck is int && data.weaponRoyaleLuck >= 0 && data.weaponRoyaleLuck <= 100 &&
+             data.goldRoyaleLuck is int && data.goldRoyaleLuck >= 0 && data.goldRoyaleLuck <= 100 &&
+             data.incubatorLuck is int && data.incubatorLuck >= 0 && data.incubatorLuck <= 100 &&
+             isValidId(data.equippedCharacterId) && data.equippedCharacterId.size() <= 64 &&
+             isValidId(data.equippedRifleSkinId) && data.equippedRifleSkinId.size() <= 64 &&
+             isValidId(data.equippedSmgSkinId) && data.equippedSmgSkinId.size() <= 64 &&
+             isValidId(data.equippedGlooSkinId) && data.equippedGlooSkinId.size() <= 64 &&
+             isValidId(data.equippedAttachmentId) && data.equippedAttachmentId.size() <= 64 &&
+             isValidId(data.equippedHatId) && data.equippedHatId.size() <= 64 &&
+             isValidId(data.equippedOutfitId) && data.equippedOutfitId.size() <= 64 &&
+             isValidId(data.equippedAccessoryId) && data.equippedAccessoryId.size() <= 64 &&
+             data.matchesPlayed is int && data.matchesPlayed >= 0 && data.matchesPlayed <= 1000000 &&
+             data.booyahs is int && data.booyahs >= 0 && data.booyahs <= 1000000 &&
+             data.totalKills is int && data.totalKills >= 0 && data.totalKills <= 10000000 &&
+             data.totalHeadshots is int && data.totalHeadshots >= 0 && data.totalHeadshots <= 10000000 &&
+             data.rankPoints is int && data.rankPoints >= 0 && data.rankPoints <= 1000000 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidOwnedItem(data, userId, itemId) {
+      return data.itemId is string && data.itemId == itemId && isValidId(data.itemId) && data.itemId.size() <= 64 &&
+             data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+             data.category in ['character', 'weapon', 'gloo', 'bundle', 'attachment', 'consumable', 'hat', 'outfit', 'accessory'] &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 64 &&
+             data.rarity in ['mythic', 'legendary', 'epic', 'rare'] &&
+             data.acquiredVia in ['starter', 'store', 'luck_royale'] &&
+             data.quantity is int && data.quantity >= 1 && data.quantity <= 99999 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidMatchRecord(data, userId) {
+      return data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+             data.mode in ['battle_royale', 'clash_blitz'] &&
+             data.placement is int && data.placement >= 1 && data.placement <= 20 &&
+             data.kills is int && data.kills >= 0 && data.kills <= 30 &&
+             data.headshots is int && data.headshots >= 0 && data.headshots <= 30 &&
+             data.damageDealt is int && data.damageDealt >= 0 && data.damageDealt <= 50000 &&
+             data.survivalSeconds is int && data.survivalSeconds >= 0 && data.survivalSeconds <= 3600 &&
+             data.booyah is bool &&
+             data.rankPointsDelta is int && data.rankPointsDelta >= -100 && data.rankPointsDelta <= 200 &&
+             data.diamondsEarned is int && data.diamondsEarned >= 0 && data.diamondsEarned <= 10000000 &&
+             data.goldEarned is int && data.goldEarned >= 0 && data.goldEarned <= 10000000 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidRoyaleSpinRecord(data, userId) {
+      return data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+             data.bannerId in ['diamond_royale', 'weapon_royale', 'gold_royale', 'incubator'] &&
+             data.spinCount is int && data.spinCount >= 1 && data.spinCount <= 11 &&
+             data.rewardIds is list && data.rewardIds.size() >= 1 && data.rewardIds.size() <= 11 &&
+             data.rewardIds[0] is string &&
+             data.highestRarity in ['mythic', 'legendary', 'epic', 'rare'] &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    // --- COLLECTION RULES ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'callsign', 'diamonds', 'gold', 'royaleTokens',
+                         'diamondRoyaleLuck', 'weaponRoyaleLuck', 'goldRoyaleLuck', 'incubatorLuck',
+                         'equippedCharacterId', 'equippedRifleSkinId', 'equippedSmgSkinId', 'equippedGlooSkinId', 'equippedAttachmentId',
+                         'equippedHatId', 'equippedOutfitId', 'equippedAccessoryId',
+                         'matchesPlayed', 'booyahs', 'totalKills', 'totalHeadshots', 'rankPoints',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'callsign', 'diamonds', 'gold', 'royaleTokens',
+                         'diamondRoyaleLuck', 'weaponRoyaleLuck', 'goldRoyaleLuck', 'incubatorLuck',
+                         'equippedCharacterId', 'equippedRifleSkinId', 'equippedSmgSkinId', 'equippedGlooSkinId', 'equippedAttachmentId',
+                         'equippedHatId', 'equippedOutfitId', 'equippedAccessoryId',
+                         'matchesPlayed', 'booyahs', 'totalKills', 'totalHeadshots', 'rankPoints',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidUserProfile(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         // Action 1: Economy, Luck Royale, & Store updates
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'diamonds', 'gold', 'royaleTokens',
+                           'diamondRoyaleLuck', 'weaponRoyaleLuck', 'goldRoyaleLuck', 'incubatorLuck',
+                           'updatedAt'
+                         ]) ||
+                         // Action 2: Loadout & Callsign updates
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'callsign', 'equippedCharacterId', 'equippedRifleSkinId',
+                           'equippedSmgSkinId', 'equippedGlooSkinId', 'equippedAttachmentId',
+                           'equippedHatId', 'equippedOutfitId', 'equippedAccessoryId', 'updatedAt'
+                         ]) ||
+                         // Action 3: Match completion stats & currency rewards
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'matchesPlayed', 'booyahs', 'totalKills', 'totalHeadshots',
+                           'rankPoints', 'diamonds', 'gold', 'updatedAt'
+                         ])
+                       );
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // Subcollection: Unlocked Inventory Items
+      match /inventory/{itemId} {
+        allow get: if isOwner(userId) && isValidId(itemId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(itemId) &&
+                         incoming().keys().hasAll([
+                           'itemId', 'userId', 'category', 'name', 'rarity',
+                           'acquiredVia', 'quantity', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'itemId', 'userId', 'category', 'name', 'rarity',
+                           'acquiredVia', 'quantity', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidOwnedItem(incoming(), userId, itemId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(itemId) &&
+                         isValidOwnedItem(incoming(), userId, itemId) &&
+                         incoming().itemId == existing().itemId &&
+                         incoming().userId == existing().userId &&
+                         incoming().category == existing().category &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'quantity', 'acquiredVia', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(itemId);
+      }
+
+      // Subcollection: Immutable Match History
+      match /matches/{matchId} {
+        allow get: if isOwner(userId) && isValidId(matchId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(matchId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'mode', 'placement', 'kills', 'headshots',
+                           'damageDealt', 'survivalSeconds', 'booyah',
+                           'rankPointsDelta', 'diamondsEarned', 'goldEarned', 'createdAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'mode', 'placement', 'kills', 'headshots',
+                           'damageDealt', 'survivalSeconds', 'booyah',
+                           'rankPointsDelta', 'diamondsEarned', 'goldEarned', 'createdAt'
+                         ]) &&
+                         isValidMatchRecord(incoming(), userId);
+
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(matchId);
+      }
+
+      // Subcollection: Immutable Luck Royale Spin History
+      match /royale_history/{spinId} {
+        allow get: if isOwner(userId) && isValidId(spinId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(spinId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'bannerId', 'spinCount', 'rewardIds',
+                           'highestRarity', 'createdAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'bannerId', 'spinCount', 'rewardIds',
+                           'highestRarity', 'createdAt'
+                         ]) &&
+                         isValidRoyaleSpinRecord(incoming(), userId);
+
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(spinId);
+      }
+    }
+  }
+}

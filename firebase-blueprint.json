@@ -1,0 +1,325 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Player tactical profile, unlimited currency balances, Luck Royale pity counters, equipped loadout, and career combat stats.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the player."
+        },
+        "callsign": {
+          "type": "string",
+          "description": "In-game survivor display callsign (2-24 characters)."
+        },
+        "diamonds": {
+          "type": "integer",
+          "description": "Current diamond balance (auto-replenished unlimited economy)."
+        },
+        "gold": {
+          "type": "integer",
+          "description": "Current gold coin balance (auto-replenished unlimited economy)."
+        },
+        "royaleTokens": {
+          "type": "integer",
+          "description": "Royale exchange tokens earned from duplicate Luck Royale drops."
+        },
+        "diamondRoyaleLuck": {
+          "type": "integer",
+          "description": "Pity progress (0-100) for Diamond Royale."
+        },
+        "weaponRoyaleLuck": {
+          "type": "integer",
+          "description": "Pity progress (0-100) for Weapon Royale."
+        },
+        "goldRoyaleLuck": {
+          "type": "integer",
+          "description": "Pity progress (0-100) for Gold Royale."
+        },
+        "incubatorLuck": {
+          "type": "integer",
+          "description": "Pity progress (0-100) for Incubator Vault."
+        },
+        "equippedCharacterId": {
+          "type": "string",
+          "description": "ID of currently equipped operative character bundle."
+        },
+        "equippedRifleSkinId": {
+          "type": "string",
+          "description": "ID of currently equipped assault rifle skin."
+        },
+        "equippedSmgSkinId": {
+          "type": "string",
+          "description": "ID of currently equipped SMG/shotgun skin."
+        },
+        "equippedGlooSkinId": {
+          "type": "string",
+          "description": "ID of currently equipped Gloo Wall shield skin."
+        },
+        "equippedAttachmentId": {
+          "type": "string",
+          "description": "ID of currently equipped tactical weapon attachment."
+        },
+        "equippedHatId": {
+          "type": "string",
+          "description": "ID of currently equipped headgear / hat."
+        },
+        "equippedOutfitId": {
+          "type": "string",
+          "description": "ID of currently equipped character outfit."
+        },
+        "equippedAccessoryId": {
+          "type": "string",
+          "description": "ID of currently equipped back/aura accessory."
+        },
+        "matchesPlayed": {
+          "type": "integer",
+          "description": "Total battle royale matches completed."
+        },
+        "booyahs": {
+          "type": "integer",
+          "description": "Total #1 victory matches."
+        },
+        "totalKills": {
+          "type": "integer",
+          "description": "Cumulative eliminations across matches."
+        },
+        "totalHeadshots": {
+          "type": "integer",
+          "description": "Cumulative headshot eliminations."
+        },
+        "rankPoints": {
+          "type": "integer",
+          "description": "Competitive Battle Royale rank score."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of profile creation (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last profile update (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "callsign",
+        "diamonds",
+        "gold",
+        "royaleTokens",
+        "diamondRoyaleLuck",
+        "weaponRoyaleLuck",
+        "goldRoyaleLuck",
+        "incubatorLuck",
+        "equippedCharacterId",
+        "equippedRifleSkinId",
+        "equippedSmgSkinId",
+        "equippedGlooSkinId",
+        "equippedAttachmentId",
+        "equippedHatId",
+        "equippedOutfitId",
+        "equippedAccessoryId",
+        "matchesPlayed",
+        "booyahs",
+        "totalKills",
+        "totalHeadshots",
+        "rankPoints",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "OwnedItem": {
+      "title": "OwnedItem",
+      "description": "Unlocked character bundle, weapon skin, or tactical gear item in a player's vault.",
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "string",
+          "description": "Catalog identifier matching the document ID."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase UID."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["character", "weapon", "gloo", "bundle", "attachment", "consumable", "hat", "outfit", "accessory"],
+          "description": "Item category."
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the unlocked item."
+        },
+        "rarity": {
+          "type": "string",
+          "enum": ["mythic", "legendary", "epic", "rare"],
+          "description": "Item rarity tier."
+        },
+        "acquiredVia": {
+          "type": "string",
+          "enum": ["starter", "store", "luck_royale"],
+          "description": "Source where the item was obtained."
+        },
+        "quantity": {
+          "type": "integer",
+          "description": "Stack count or duplicate count."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when unlocked."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated."
+        }
+      },
+      "required": [
+        "itemId",
+        "userId",
+        "category",
+        "name",
+        "rarity",
+        "acquiredVia",
+        "quantity",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MatchRecord": {
+      "title": "MatchRecord",
+      "description": "Immutable battle royale match result log.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase UID."
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["battle_royale", "clash_blitz"],
+          "description": "Combat mode played."
+        },
+        "placement": {
+          "type": "integer",
+          "description": "Final placement rank (1 = BOOYAH)."
+        },
+        "kills": {
+          "type": "integer",
+          "description": "Eliminations scored in the match."
+        },
+        "headshots": {
+          "type": "integer",
+          "description": "Headshot eliminations scored."
+        },
+        "damageDealt": {
+          "type": "integer",
+          "description": "Total damage inflicted."
+        },
+        "survivalSeconds": {
+          "type": "integer",
+          "description": "Survival duration in seconds."
+        },
+        "booyah": {
+          "type": "boolean",
+          "description": "True if player finished #1."
+        },
+        "rankPointsDelta": {
+          "type": "integer",
+          "description": "Rank score adjustment."
+        },
+        "diamondsEarned": {
+          "type": "integer",
+          "description": "Diamonds awarded at match end."
+        },
+        "goldEarned": {
+          "type": "integer",
+          "description": "Gold awarded at match end."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of match completion."
+        }
+      },
+      "required": [
+        "userId",
+        "mode",
+        "placement",
+        "kills",
+        "headshots",
+        "damageDealt",
+        "survivalSeconds",
+        "booyah",
+        "rankPointsDelta",
+        "diamondsEarned",
+        "goldEarned",
+        "createdAt"
+      ]
+    },
+    "RoyaleSpinRecord": {
+      "title": "RoyaleSpinRecord",
+      "description": "Immutable Luck Royale spin history entry.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase UID."
+        },
+        "bannerId": {
+          "type": "string",
+          "enum": ["diamond_royale", "weapon_royale", "gold_royale", "incubator"],
+          "description": "Luck Royale banner spun."
+        },
+        "spinCount": {
+          "type": "integer",
+          "description": "Number of draws in the spin batch."
+        },
+        "rewardIds": {
+          "type": "array",
+          "description": "List of reward item IDs won."
+        },
+        "highestRarity": {
+          "type": "string",
+          "enum": ["mythic", "legendary", "epic", "rare"],
+          "description": "Highest rarity item obtained in the spin."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of spin."
+        }
+      },
+      "required": [
+        "userId",
+        "bannerId",
+        "spinCount",
+        "rewardIds",
+        "highestRarity",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Per-user player profile, currency balances, Luck Royale pity progress, equipped loadout, and career statistics."
+    },
+    "/users/{userId}/inventory/{itemId}": {
+      "schema": { "$ref": "#/entities/OwnedItem" },
+      "description": "Player's unlocked character bundles, weapon skins, and gloo wall skins."
+    },
+    "/users/{userId}/matches/{matchId}": {
+      "schema": { "$ref": "#/entities/MatchRecord" },
+      "description": "Player's battle royale match history records."
+    },
+    "/users/{userId}/royale_history/{spinId}": {
+      "schema": { "$ref": "#/entities/RoyaleSpinRecord" },
+      "description": "Player's Luck Royale spin log."
+    }
+  }
+}

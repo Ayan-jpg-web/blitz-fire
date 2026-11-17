@@ -1,0 +1,6 @@
+{
+  "name": "Blitz Fire",
+  "description": "A tactical battle royale mobile shooter featuring live combat, unlimited diamonds and gold, Luck Royale prize spins, and a weapon & bundle store.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
